@@ -1,0 +1,40 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/docker-existing-dockerfile
+{
+	"name": "zed_ros_1_image",
+	"image": "ww_zed_ros_1:latest", // "3.7-ros-gl-devel-cuda11.4-ubuntu20.04:latest",
+	"forwardPorts": [6000], // Port needs to be opened to forward data to x11 for display
+	"runArgs": ["--privileged", //Needed to access connected sensors
+	"--runtime", "nvidia", // Needed to access CUDA and use the ZED SDK
+	"--env=DISPLAY", // Possibly needed to for display forwarding?
+	"--env=QT_X11_NO_MITSHM=1"], // Possibly needed to for display forwarding?
+	// "dockerComposeFile": ["docker-compose.yaml"],
+	"postCreateCommand": "apt-get update && apt-get install -y xauth && echo 'source /opt/ros_ws/devel/setup.bash' >> ~/.bashrc",
+
+	// Need to mount the x window in the container so we can create displays
+	// I think this is only necessary because we're also using the nvidia runtime
+	// During initial tests without CUDA we only needed port 6000 open
+	"mounts": ["source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"]
+	
+	// "build": {
+	// 	// Sets the run context to one level up instead of the .devcontainer folder.
+	// 	"context": "..",
+	// 	// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
+	// 	"dockerfile": "../Dockerfile.ros"
+	// }
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Uncomment the next line to run commands after the container is created.
+	// "postCreateCommand": "cat /etc/os-release",
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as an existing user other than the container default. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "devcontainer"
+}

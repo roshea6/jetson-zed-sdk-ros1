@@ -1,0 +1,76 @@
+#  Build arguments
+ARG UBUNTU_RELEASE_YEAR
+ARG ZED_SDK_MAJOR
+ARG ZED_SDK_MINOR
+ARG CUDA_MAJOR
+ARG CUDA_MINOR
+
+# Specify the parent image from which we build
+# FROM stereolabs/zed:${ZED_SDK_MAJOR}.${ZED_SDK_MINOR}-devel-cuda${CUDA_MAJOR}.${CUDA_MINOR}-ubuntu${UBUNTU_RELEASE_YEAR}.04
+FROM stereolabs/zed:4.0-devel-jetson-jp5.1.1
+
+ARG ROS_DISTRO_ARG
+ENV LOGNAME root
+ENV ROS_DISTRO ${ROS_DISTRO_ARG}
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
+
+
+# Setup ROS
+RUN apt-get update -y || true && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata curl && \
+    sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && \
+    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add - && \
+    apt-get update || true &&\
+    DEBIAN_FRONTEND=noninteractive apt-get install -y ros-$ROS_DISTRO-desktop-full build-essential cmake usbutils libusb-1.0-0-dev git -y --allow-unauthenticated && \
+RUN apt-get update -y || true && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y tzdata curl && \
+    sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && \
+    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add - && \
+    apt-get update || true &&\
+    DEBIAN_FRONTEND=noninteractive apt-get install -y ros-$ROS_DISTRO-desktop-full build-essential cmake usbutils libusb-1.0-0-dev git -y --allow-unauthenticated 
+
+# Install Packages depending on ROS distro
+RUN apt-get install -y python3-rosdep python3-rosinstall  python3-rosinstall-generator python3-wstool
+
+# Install git just in case
+RUN apt-get install -y git
+
+RUN rm -rf /var/lib/apt/lists/*
+
+#Setup ROS workspace
+RUN mkdir -p /opt/ros_ws/src
+WORKDIR /opt/ros_ws
+RUN  . /opt/ros/noetic/setup.sh && \
+	catkin_make
+
+# Clone needed ZED ROS wrapper repo and build it
+WORKDIR /opt/ros_ws/src
+RUN git clone --recursive https://github.com/stereolabs/zed-ros-wrapper.git
+
+WORKDIR /opt/ros_ws
+# Initialize rosdep and install dependencies. Might not need to initialize
+RUN rosdep init && rosdep update && rosdep install --from-paths src --ignore-src -r -y
+
+# Build ROS workspace including the cloned ZED packages
+RUN . /opt/ros/noetic/setup.sh && \
+	catkin_make
+
+# Need to clone and build this seperately otherwise it throws rosdep errors
+WORKDIR /opt/ros_ws/src
+RUN git clone https://github.com/stereolabs/zed-ros-examples.git
+
+WORKDIR /opt/ros_ws
+# RUN rosdep install --from-paths src --ignore-src -r -y
+
+RUN rm -rf /var/lib/apt/lists/*
+
+# Build ROS workspace including the cloned ZED packages
+RUN . /opt/ros/noetic/setup.sh && \
+	catkin_make
+
+# setup entrypoint
+COPY ./ros_entrypoint.sh /
+ENTRYPOINT ["/ros_entrypoint.sh"]
+
+CMD ["bash"]
