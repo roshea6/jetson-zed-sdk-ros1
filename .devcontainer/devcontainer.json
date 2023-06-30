@@ -9,12 +9,15 @@
 	"--env=DISPLAY", // Possibly needed to for display forwarding?
 	"--env=QT_X11_NO_MITSHM=1"], // Possibly needed to for display forwarding?
 	// "dockerComposeFile": ["docker-compose.yaml"],
-	"postCreateCommand": "apt-get update && apt-get install -y xauth && echo 'source /opt/ros_ws/devel/setup.bash' >> ~/.bashrc",
+	"postCreateCommand": "apt-get update && apt-get install -y xauth && echo 'source /root/catkin_ws/devel/setup.bash' >> ~/.bashrc",
 
 	// Need to mount the x window in the container so we can create displays
 	// I think this is only necessary because we're also using the nvidia runtime
 	// During initial tests without CUDA we only needed port 6000 open
-	"mounts": ["source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"]
+	"mounts": ["source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind"],
+
+	"workspaceFolder": "/root/catkin_ws/src/jetson_zed_sdk_ros1",
+	"workspaceMount": "source=${localWorkspaceFolder},target=/root/catkin_ws/src/jetson_zed_sdk_ros1,type=bind"
 	
 	// "build": {
 	// 	// Sets the run context to one level up instead of the .devcontainer folder.
